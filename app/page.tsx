@@ -6,9 +6,11 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
+ // Thay đổi ngày này theo ý bạn
+const TARGET_DATE = new Date('2026-04-22T00:00:00');
 
 export default function Home() {
-  const [timeLeft, setTimeLeft] = useState({ days: 5, hours: 0, minutes: 0, seconds: 0 })
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
 
   // --- THÊM STATE CHO FORM ---
   const [igHandle, setIgHandle] = useState('')
@@ -16,15 +18,13 @@ export default function Home() {
   const [status, setStatus] = useState<{ type: 'success' | 'error' | null, msg: string }>({ type: null, msg: '' })
 
   useEffect(() => {
-    const targetDate = new Date()
-    targetDate.setDate(targetDate.getDate() + 5)
-
     const timer = setInterval(() => {
       const now = new Date().getTime()
-      const distance = targetDate.getTime() - now
+      const distance = TARGET_DATE.getTime() - now //tính khoảng cách ngày cố định
 
       if (distance < 0) {
         clearInterval(timer)
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
       } else {
         setTimeLeft({
           days: Math.floor(distance / (1000 * 60 * 60 * 24)),
@@ -121,12 +121,12 @@ export default function Home() {
               value={igHandle}
               onChange={(e) => setIgHandle(e.target.value)}
               disabled={loading}
-              className="bg-transparent flex-grow text-white px-4 py-3 focus:outline-none placeholder:text-zinc-600 font-mono text-sm uppercase tracking-[0.2em]"
+              className="bg-black text-white p-4 flex-1 min-w-0 outline-none uppercase placeholder:text-zinc-600 text-sm tracking-widest font-normal"
             />
             <button
               type="submit"
               disabled={loading}
-              className="bg-white text-black text-xs font-black italic px-10 py-3 hover:bg-zinc-300 transition-all uppercase tracking-tighter active:scale-95"
+              className="bg-white text-black px-8 py-4 text-xs font-black italic hover:bg-zinc-200 transition-all"
             >
               {loading ? '...' : 'JOIN'}
             </button>
@@ -141,8 +141,8 @@ export default function Home() {
           )}
 
           {/* Text trang trí nhỏ dưới cùng để tăng độ "vibe" */}
-          <p className="mt-6 text-[8px] text-zinc-500 tracking-[0.5em] uppercase font-mono">
-            * _early_access_portal_v1.0
+          <p className="mt-6 text-[10px] text-zinc-300 tracking-[0.5em] uppercase font-mono">
+            * _DARE_TO_BE_DIFFERENT_ *
           </p>
         </div>
 
@@ -158,7 +158,7 @@ export default function Home() {
           </a>
         </div>
 
-        <p className="text-[9px] text-zinc-600 tracking-[1.2em] uppercase pt-12">
+        <p className="text-[9px] text-zinc-400 tracking-[1.2em] uppercase pt-12">
           Limited Access • No Restocks
         </p>
       </div>
