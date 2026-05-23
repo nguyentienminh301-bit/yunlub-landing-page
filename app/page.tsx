@@ -6,12 +6,42 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
- // Thay đổi ngày này theo ý bạn
-const TARGET_DATE = new Date('2026-04-22T00:00:00');
+// Thay đổi ngày này theo ý bạn
+const TARGET_DATE = new Date('2026-05-30T21:00:00');
 
 export default function Home() {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+  const [isMounted, setIsMounted] = useState(false)
 
+ useEffect(() => {
+    // 1. Tạo một hàm tính toán thời gian riêng để tái sử dụng
+    const calculateTimeLeft = () => {
+      const now = new Date().getTime()
+      const distance = TARGET_DATE.getTime() - now
+
+      if (distance < 0) {
+        return { days: 0, hours: 0, minutes: 0, seconds: 0 }
+      } else {
+        return {
+          days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((distance % (1000 * 60)) / 1000),
+        }
+      }
+    }
+
+    // 2. CHẠY NGAY LẬP TỨC LẦN ĐẦU TIÊN để cập nhật số chuẩn trước khi hiện giao diện
+    setTimeLeft(calculateTimeLeft())
+    setIsMounted(true) // Chỉ bật giao diện sau khi ĐÃ CÓ SỐ CHUẨN
+
+    // 3. Sau đó mới chạy vòng lặp mỗi 1 giây như cũ
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft())
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [])
   // --- THÊM STATE CHO FORM ---
   const [igHandle, setIgHandle] = useState('')
   const [loading, setLoading] = useState(false)
@@ -46,15 +76,33 @@ export default function Home() {
     setLoading(true)
     setStatus({ type: null, msg: '' })
 
+    // Đưa chữ về dạng lowercase để kiểm tra chuẩn xác (vì IG không phân biệt hoa thường)
+    const formattedHandle = igHandle.trim().toLowerCase()
+
     const { error } = await supabase
-      .from('early_access') // Bro nhớ tạo table 'early_access' trên Supabase nhé
-      .insert([{ ig_handle: igHandle }])
+      .from('early_access')
+      .insert([{ ig_handle: formattedHandle }])
 
     if (error) {
-      console.error("Lỗi Supabase:", error.message); // Xem chi tiết ở F12 Console
-      setStatus({ type: 'error', msg: `Lỗi: ${error.message}` });
+      // Mã lỗi '23505' là mã lỗi trùng khóa (Unique Violation) của PostgreSQL/Supabase
+      if (error.code === '23505') {
+        setStatus({ 
+          type: 'error', 
+          msg: 'Tên Instagram này đã đăng ký danh sách chờ trước đó!' 
+        })
+      } else {
+        // Các lỗi hệ thống khác nếu có phát sinh
+        console.error("Lỗi Supabase:", error.message)
+        setStatus({ 
+          type: 'error', 
+          msg: 'Có lỗi xảy ra khi kết nối. Vui lòng thử lại.' 
+        })
+      }
     } else {
-      setStatus({ type: 'success', msg: 'Đã lưu! Chờ thông báo từ Yunlub nhé.' });
+      setStatus({ 
+        type: 'success', 
+        msg: 'Đã lưu! Chờ thông báo từ Yunlub nhé.' 
+      })
       setIgHandle('')
     }
     setLoading(false)
@@ -73,31 +121,39 @@ export default function Home() {
 
         {/* 1. ĐỒNG HỒ ĐẾM NGƯỢC */}
         <div className="flex justify-center gap-6 md:gap-12 text-white drop-shadow-2xl">
-          {/* Giữ nguyên code timer của bạn */}
+
+          {/* Days */}
           <div className="flex flex-col">
             <span className="text-5xl md:text-8xl font-black italic tracking-tighter leading-none">
-              {timeLeft.days < 10 ? `0${timeLeft.days}` : timeLeft.days}
+              {!isMounted ? '--' : (timeLeft.days < 10 ? `0${timeLeft.days}` : timeLeft.days)}
             </span>
             <span className="text-[10px] md:text-xs tracking-[0.4em] uppercase text-zinc-400 mt-2">Days</span>
           </div>
+
+          {/* Hours */}
           <div className="flex flex-col">
             <span className="text-5xl md:text-8xl font-black italic tracking-tighter leading-none">
-              {timeLeft.hours < 10 ? `0${timeLeft.hours}` : timeLeft.hours}
+              {!isMounted ? '--' : (timeLeft.hours < 10 ? `0${timeLeft.hours}` : timeLeft.hours)}
             </span>
             <span className="text-[10px] md:text-xs tracking-[0.4em] uppercase text-zinc-400 mt-2">Hours</span>
           </div>
+
+          {/* Mins */}
           <div className="flex flex-col">
             <span className="text-5xl md:text-8xl font-black italic tracking-tighter leading-none">
-              {timeLeft.minutes < 10 ? `0${timeLeft.minutes}` : timeLeft.minutes}
+              {!isMounted ? '--' : (timeLeft.minutes < 10 ? `0${timeLeft.minutes}` : timeLeft.minutes)}
             </span>
             <span className="text-[10px] md:text-xs tracking-[0.4em] uppercase text-zinc-400 mt-2">Mins</span>
           </div>
+
+          {/* Secs */}
           <div className="flex flex-col">
             <span className="text-5xl md:text-8xl font-black italic tracking-tighter leading-none">
-              {timeLeft.seconds < 10 ? `0${timeLeft.seconds}` : timeLeft.seconds}
+              {!isMounted ? '--' : (timeLeft.seconds < 10 ? `0${timeLeft.seconds}` : timeLeft.seconds)}
             </span>
             <span className="text-[10px] md:text-xs tracking-[0.4em] uppercase text-zinc-400 mt-2">Secs</span>
           </div>
+
         </div>
 
         {/* 2. LOGO */}
@@ -121,7 +177,7 @@ export default function Home() {
               value={igHandle}
               onChange={(e) => setIgHandle(e.target.value)}
               disabled={loading}
-              className="bg-black text-white p-4 flex-1 min-w-0 outline-none uppercase placeholder:text-zinc-600 text-sm tracking-widest font-normal"
+              className="bg-black text-white p-4 flex-1 min-w-0 outline-none placeholder:text-zinc-600 text-sm tracking-widest font-normal"
             />
             <button
               type="submit"
