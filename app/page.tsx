@@ -94,20 +94,17 @@ export default function Home() {
     try {
       const enteredCode = password.trim()
 
-      // Thực hiện tìm kiếm xem mã người dùng nhập có khớp với bất kỳ dòng nào trong cột access_code không
       const { data, error } = await supabase
         .from('early_access')
         .select('id')
         .eq('access_code', enteredCode)
-        .maybeSingle() // Lấy ra 1 kết quả duy nhất nếu khớp
+        .maybeSingle()
 
       if (error) throw error
 
       if (data) {
-        // Nếu tìm thấy mã khớp trong DB -> Cho phép chuyển hướng vào Store
         router.push('/store')
       } else {
-        // Nếu không tìm thấy dòng nào khớp mã
         setPassError('[ ACCESS DENIED — INVALID CODE ]')
         setPassword('')
       }
@@ -160,12 +157,12 @@ export default function Home() {
           </div>
         )}
 
-        {/* 2. LOGO */}
+        {/* 2. KHU VỰC LOGO SIÊU NỔI BẬT (ĐÃ NÂNG CẤP HIỆU ỨNG TỎA SÁNG CỰC ĐẠI - ULTRA GLOW EFFECT) */}
         <div className="py-4 group">
           <img
             src="/logo.svg"
             alt="Logo"
-            className="h-44 md:h-[280px] w-auto invert opacity-95 group-hover:scale-105 transition-transform duration-1000 drop-shadow-[0_0_25px_rgba(255,255,255,0.1)]"
+            className="h-44 md:h-[280px] w-auto invert opacity-100 group-hover:scale-105 transition-all duration-700 filter drop-shadow-[0_0_20px_rgba(255,255,255,0.7)] drop-shadow-[0_0_45px_rgba(255,255,255,0.45)] drop-shadow-[0_0_90px_rgba(255,255,255,0.25)]"
           />
         </div>
 
@@ -208,7 +205,7 @@ export default function Home() {
             /* [TRẠNG THÁI HẾT GIỜ]: Cổng Mật Khẩu Đen - Trắng Quét Code Supabase */
             <div className="w-full flex flex-col items-center space-y-6 animate-fade-in">
               
-              <form onSubmit={handleSubmitAccess} className="w-full flex items-center h-12 overflow-hidden border border-zinc-800 bg-zinc-950">
+              <form onSubmit={handleSubmitAccess} className="w-full flex items-center h-12 overflow-hidden border border-zinc-800 bg-zinc-950 focus-within:border-zinc-500 transition-colors">
                 
                 <div className="flex-1 h-full flex items-center px-4">
                   <input 
@@ -234,16 +231,28 @@ export default function Home() {
                 </button>
               </form>
 
-              {/* Nhãn chữ và thiết kế chân form */}
-              <div className="flex flex-col items-center space-y-1.5">
-                <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest text-zinc-500">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              {/* 🔒 KHU VỰC THÀNH PHẦN ĐÃ ĐƯỢC THÊM LẠI: ICON Ổ KHÓA & EXCLUSIVE ACCESS CHUẨN MOCKUP */}
+              <div className="flex flex-col items-center space-y-2 select-none">
+                <div className="flex items-center space-x-2 text-[9px] font-mono tracking-[0.25em] text-zinc-500 uppercase">
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="10" 
+                    height="10" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                    className="opacity-60"
+                  >
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                   </svg>
-                  <span className="uppercase font-medium">Exclusive Access</span>
+                  <span>Exclusive Access</span>
                 </div>
                 
+                {/* Thông báo lỗi từ database (nếu gõ sai) sẽ xuất hiện gọn gàng bên dưới */}
                 {passError && (
                   <p className="text-[9px] font-mono tracking-widest text-red-500 font-bold uppercase mt-1">
                     {passError}
@@ -255,22 +264,26 @@ export default function Home() {
 
         </div>
 
-        {/* 4. CHÂN TRANG INSTAGRAM LINK */}
-        <div className="pt-6 border-t border-white/10 w-full max-w-xs md:max-w-md">
-          <p className="text-[10px] tracking-[0.6em] uppercase font-bold text-zinc-600 mb-4">Official</p>
-          <a
-            href="https://www.instagram.com/yunlubgallery/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-1xl md:text-3xl font-black italic hover:text-zinc-400 transition-all uppercase tracking-tighter block"
-          >
-            @yunlubgallery
-          </a>
-        </div>
+        {/* 4. CHÂN TRANG INSTAGRAM LINK & FOOTER (CHỈ HIỂN THỊ KHI CHƯA KHÓA WEB, HẾT GIỜ SẼ ẨN TOÀN BỘ) */}
+        {!isLocked && (
+          <>
+            <div className="pt-6 border-t border-white/10 w-full max-w-xs md:max-w-md">
+              <p className="text-[10px] tracking-[0.6em] uppercase font-bold text-zinc-600 mb-4">Official</p>
+              <a
+                href="https://www.instagram.com/yunlubgallery/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-1xl md:text-3xl font-black italic hover:text-zinc-400 transition-all uppercase tracking-tighter block"
+              >
+                @yunlubgallery
+              </a>
+            </div>
 
-        <p className="text-[9px] text-zinc-500 tracking-[1.2em] uppercase pt-12">
-          Limited Access • No Restocks
-        </p>
+            <p className="text-[9px] text-zinc-500 tracking-[1.2em] uppercase pt-12">
+              Limited Access • No Restocks
+            </p>
+          </>
+        )}
       </div>
     </main>
   )
