@@ -101,43 +101,43 @@ export default function StorePage() {
                 </div>
             </aside>
 
-       {/* GRID DANH SÁCH SẢN PHẨM */}
-<section className="flex-1 w-full min-h-[300px]">
-    {isLoading ? (
-        <div className="w-full h-64 flex items-center justify-center">
-            <span className="text-[10px] font-mono tracking-widest text-zinc-600 animate-pulse">[ LOADING PRODUCTS... ]</span>
-        </div>
-    ) : filteredProducts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8">
-            {filteredProducts.map((product) => (
-                <Link href={`/store/${product.id}`} key={product.id} className="flex flex-col space-y-0 group cursor-pointer">
-                    
-                    <div className="w-full aspect-square max-w-[85%] mx-auto bg-transparent flex items-center justify-center relative overflow-hidden">
-                        <img
-                            src={product.image_url}
-                            alt={product.description}
-                            // Tách hiệu ứng rực rỡ ra ngoài để luôn luôn hiển thị cố định
-                            className="w-full h-full object-contain pt-4 px-4 pb-0 transition-all duration-500 ease-out filter drop-shadow-[0_0_25px_rgba(236,72,153,0.55)] group-hover:scale-[1.04]"
-                        />
+            {/* GRID DANH SÁCH SẢN PHẨM */}
+            <section className="flex-1 w-full min-h-[300px]">
+                {isLoading ? (
+                    <div className="w-full h-64 flex items-center justify-center">
+                        <span className="text-[10px] font-mono tracking-widest text-zinc-600 animate-pulse">[ LOADING PRODUCTS... ]</span>
                     </div>
+                ) : filteredProducts.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8">
+                        {filteredProducts.map((product) => (
+                            <Link href={`/store/${product.id}`} key={product.id} className="flex flex-col space-y-0 group cursor-pointer">
+                                
+                                <div className="w-full aspect-square max-w-[85%] mx-auto bg-transparent flex items-center justify-center relative overflow-hidden">
+                                    <img
+                                        src={product.image_url}
+                                        alt={product.description}
+                                        /* Đã thêm mix-blend-screen để khử vệt đen và sửa lỗi drop-shadow bao quanh khung vuông */
+                                        className="w-full h-full object-contain pt-4 px-4 pb-0 transition-all duration-500 ease-out filter drop-shadow-[0_0_25px_rgba(236,72,153,0.55)] group-hover:scale-[1.04] mix-blend-screen"
+                                    />
+                                </div>
 
-                    {/* KHU VỰC CHỮ ĐƯỢC ÉP LÊN SÁT MÉP QUẦN */}
-                    <div className="flex flex-col space-y-0.5 text-center text-[10px] font-black italic tracking-widest uppercase px-2 mt-1">
-                        <h2 className="text-white leading-tight group-hover:underline">{product.description}</h2>
-                        <div className="font-mono not-italic text-zinc-400 text-[10px]">
-                            <span>VND {product.price?.toLocaleString()}</span>
-                        </div>
+                                {/* KHU VỰC CHỮ ĐƯỢC ÉP LÊN SÁT MÉP QUẦN */}
+                                <div className="flex flex-col space-y-0.5 text-center text-[10px] font-black italic tracking-widest uppercase px-2 mt-1">
+                                    <h2 className="text-white leading-tight group-hover:underline">{product.description}</h2>
+                                    <div className="font-mono not-italic text-zinc-400 text-[10px]">
+                                        <span>VND {product.price?.toLocaleString()}</span>
+                                    </div>
+                                </div>
+
+                            </Link>
+                        ))}
                     </div>
-
-                </Link>
-            ))}
-        </div>
-    ) : (
-        <div className="w-full h-64 flex items-center justify-center border border-zinc-900/50 bg-zinc-950/20">
-            <span className="text-[10px] font-mono tracking-[0.3em] text-zinc-600 uppercase">[ NO PRODUCTS IN THIS CATEGORY ]</span>
-        </div>
-    )}
-</section>
+                ) : (
+                    <div className="w-full h-64 flex items-center justify-center border border-zinc-900/50 bg-zinc-950/20">
+                        <span className="text-[10px] font-mono tracking-[0.3em] text-zinc-600 uppercase">[ NO PRODUCTS IN THIS CATEGORY ]</span>
+                    </div>
+                )}
+            </section>
         </div>
     )
 }

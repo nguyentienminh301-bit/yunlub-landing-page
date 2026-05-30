@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../../lib/supabase'
-import { useCart } from '../CartProvider' // Import kho hàng chung
+import { useCart } from '../../CartProvider' // Import kho hàng chung
 
 interface ProductFromSupabase {
     id: number
