@@ -30,7 +30,7 @@ export default function ProductDetailPage() {
     const [voucherCode, setVoucherCode] = useState('')
     const [voucherLoading, setVoucherLoading] = useState(false)
     const [voucherMessage, setVoucherMessage] = useState<{ type: 'success' | 'error' | null; text: string }>({ type: null, text: '' })
-    const [appliedVoucher, setAppliedVoucher] = useState<{ code: string; discount: number } | null>(null)
+    const [appliedVoucher, setAppliedVoucher] = useState<{ code: string; discount: number; voucherId: string } | null>(null)
 
     useEffect(() => {
         if (!rawId) return
@@ -63,6 +63,7 @@ export default function ProductDetailPage() {
         fetchProductDetail()
     }, [rawId])
 
+    // CHỈ VALIDATE — không burn voucher ở đây
     const handleApplyVoucher = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!voucherCode.trim() || voucherLoading || !product) return
@@ -91,8 +92,16 @@ export default function ProductDetailPage() {
                 return
             }
 
-            setAppliedVoucher({ code: inputCode, discount: voucher.discount_percent })
-            setVoucherMessage({ type: 'success', text: `[ ĐÃ SỬ DỤNG MÃ GIẢM GIÁ ${voucher.discount_percent}% ]` })
+            // Lưu cả voucherId để dùng khi burn
+            setAppliedVoucher({
+                code: inputCode,
+                discount: voucher.discount_percent,
+                voucherId: voucher.id,
+            })
+            setVoucherMessage({
+                type: 'success',
+                text: `[ ĐÃ ÁP DỤNG MÃ GIẢM GIÁ ${voucher.discount_percent}% — NHẤN ADD TO CART ĐỂ XÁC NHẬN ]`
+            })
 
         } catch (err) {
             console.error('Lỗi hệ thống voucher:', err)
@@ -107,8 +116,23 @@ export default function ProductDetailPage() {
         ? safePrice - (safePrice * appliedVoucher.discount / 100)
         : safePrice
 
+    // BURN VOUCHER Ở ĐÂY — khi user thực sự bấm ADD TO CART
     const handleLocalAddToCart = async () => {
         if (!product) return
+
+        // Nếu có voucher → burn trước, nếu lỗi thì không cho thêm vào giỏ
+        if (appliedVoucher) {
+            const { error: updateError } = await supabase
+                .from('vouchers')
+                .update({ is_used: true })
+                .eq('id', appliedVoucher.voucherId)
+
+            if (updateError) {
+                console.error("❌ Lỗi khi cập nhật voucher:", updateError.message)
+                setVoucherMessage({ type: 'error', text: '[ LỖI XÁC NHẬN VOUCHER — VUI LÒNG THỬ LẠI ]' })
+                return
+            }
+        }
 
         addToCart({
             id: String(product.id),
@@ -289,12 +313,12 @@ export default function ProductDetailPage() {
                         <AnimatePresence mode="wait">
                             {voucherMessage.text && (
                                 <motion.p
+                                    key={voucherMessage.text}
                                     initial={{ opacity: 0, height: 0, marginTop: 0 }}
                                     animate={{ opacity: 1, height: 'auto', marginTop: 6 }}
                                     exit={{ opacity: 0, height: 0, marginTop: 0 }}
                                     transition={{ duration: 0.3 }}
-                                    className={`text-[9px] font-mono tracking-wider uppercase font-bold overflow-hidden ${voucherMessage.type === 'success' ? 'text-green-500' : 'text-red-500'
-                                        }`}
+                                    className={`text-[9px] font-mono tracking-wider uppercase font-bold overflow-hidden ${voucherMessage.type === 'success' ? 'text-green-500' : 'text-red-500'}`}
                                 >
                                     {voucherMessage.text}
                                 </motion.p>
