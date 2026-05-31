@@ -1,25 +1,43 @@
 'use client'
 
 import React from 'react'
-import { useCart } from '../CartProvider' // Lùi 1 cấp ra thư mục app/ để lấy useCart
+import { useCart } from '../CartProvider'
+import { motion } from 'framer-motion'
 
 export default function StoreHeader() {
   const { setIsOpenCart, isMounted, totalCartCount } = useCart()
 
   return (
     <div className="w-full flex justify-end space-x-6 text-[10px] font-mono tracking-widest text-zinc-500 mb-8 uppercase relative z-20">
-      <button className="hover:text-white transition-colors">SEARCH</button>
+      <motion.button 
+        whileHover={{ scale: 1.05, color: '#fff' }}
+        whileTap={{ scale: 0.95 }}
+        className="transition-colors duration-200"
+      >
+        SEARCH
+      </motion.button>
       
-      <button 
+      <motion.button 
         onClick={() => setIsOpenCart(true)} 
-        className={`transition-colors ${isMounted && totalCartCount > 0 ? 'text-white font-bold underline decoration-white underline-offset-4' : 'hover:text-white'}`}
+        whileHover={{ scale: 1.05, color: '#fff' }}
+        whileTap={{ scale: 0.95 }}
+        className={`transition-colors duration-200 ${
+          isMounted && totalCartCount > 0 
+            ? 'text-white font-bold underline decoration-white underline-offset-4' 
+            : ''
+        }`}
       >
         CART ({isMounted ? totalCartCount : 0})
-      </button>
+      </motion.button>
       
-      <a href="/checkout" className="hover:text-white transition-colors">
+      <motion.a 
+        href="/checkout" 
+        whileHover={{ scale: 1.05, color: '#fff' }}
+        whileTap={{ scale: 0.95 }}
+        className="transition-colors duration-200"
+      >
         CHECKOUT
-      </a>
+      </motion.a>
     </div>
   )
 }

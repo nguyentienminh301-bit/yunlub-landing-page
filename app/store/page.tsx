@@ -39,12 +39,23 @@ export default function StorePage() {
     }, [])
 
     const filteredProducts = productsList.filter(product => {
-        if (activeCategory.toLowerCase() === 'all') return true
+        const active = activeCategory.toLowerCase();
 
-        // Chuẩn hóa chuỗi xóa khoảng trắng thừa để tránh lỗi lệch danh mục giữa DB và Code
-        const formatCat = (str: string) => str?.toLowerCase().replace(/\s+/g, '') || ''
-        return formatCat(product.category) === formatCat(activeCategory)
-    })
+        // 1. Nếu chọn 'All' -> hiện tất cả
+        if (active === 'all') return true;
+
+        // Chuẩn hóa tên danh mục của sản phẩm từ DB
+        const productCat = product.category?.toLowerCase().replace(/\s+/g, '') || '';
+
+        // 2. Logic đặc biệt cho "Bottoms"
+        // Nếu người dùng chọn Bottoms, nó sẽ trả về true cho cả 'bottoms' và 'shorts'
+        if (active === 'bottoms') {
+            return ['bottoms', 'shorts'].includes(productCat);
+        }
+
+        // 3. Các danh mục khác (T-Shirts, Tops/Jerseys,...) vẫn lọc bình thường
+        return productCat === active.replace(/\s+/g, '');
+    });
 
     return (
         <div className="flex flex-col md:flex-row gap-12 items-start">
@@ -72,8 +83,8 @@ export default function StorePage() {
                                 key={cat}
                                 onClick={() => setActiveCategory(cat)}
                                 className={`text-left uppercase transition-colors block ${activeCategory.toLowerCase() === cat.toLowerCase()
-                                        ? 'text-white underline underline-offset-4'
-                                        : 'text-zinc-500 hover:text-white'
+                                    ? 'text-white underline underline-offset-4'
+                                    : 'text-zinc-500 hover:text-white'
                                     }`}
                             >
                                 {cat}
@@ -111,7 +122,7 @@ export default function StorePage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8">
                         {filteredProducts.map((product) => (
                             <Link href={`/store/${product.id}`} key={product.id} className="flex flex-col space-y-0 group cursor-pointer">
-                                
+
                                 <div className="w-full aspect-square max-w-[85%] mx-auto bg-transparent flex items-center justify-center relative overflow-hidden">
                                     <img
                                         src={product.image_url}

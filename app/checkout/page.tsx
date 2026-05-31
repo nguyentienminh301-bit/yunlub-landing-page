@@ -11,6 +11,9 @@ export default function CheckoutPage() {
     const [isMounted, setIsMounted] = useState(false)
     const [loading, setLoading] = useState(false)
     const [showSuccess, setShowSuccess] = useState(false)
+    
+    const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+    const [orderFinalTotal, setOrderFinalTotal] = useState(0); // State lưu trữ số tiền cuối cùng
 
     // State form thông tin
     const [info, setInfo] = useState({ fullName: '', phone: '', address: '', note: '' })
@@ -23,6 +26,19 @@ export default function CheckoutPage() {
         message: '',
         type: 'success'
     })
+
+    useEffect(() => {
+        const fetchBankAccounts = async () => {
+            const { data, error } = await supabase
+                .from('bank_accounts')
+                .select('*'); // Lấy tất cả tài khoản
+
+            if (data) setBankAccounts(data);
+            if (error) console.error("Không thể tải thông tin ngân hàng:", error);
+        };
+        fetchBankAccounts();
+        setIsMounted(true);
+    }, []);
 
     // Hàm kích hoạt hiển thị Toast nhanh và tự đóng sau 4 giây
     const showNotification = (message: string, type: 'success' | 'error') => {
@@ -39,16 +55,6 @@ export default function CheckoutPage() {
         }
     }, [toast.show])
 
-    // Thông tin tài khoản các thành viên trong team
-    const teamBankAccounts = [
-        { owner: 'NGUYEN VAN A', bank: 'MB BANK (NGÂN HÀNG QUÂN ĐỘI)', number: '123456789999' },
-        { owner: 'TRAN THI B', bank: 'VIETCOMBANK', number: '0011002233445' }
-    ]
-
-    useEffect(() => {
-        setIsMounted(true)
-    }, [])
-
     if (!isMounted) return null
 
     // Tính toán tổng tiền giỏ hàng từ dữ liệu thực tế
@@ -63,16 +69,16 @@ export default function CheckoutPage() {
 
         setLoading(true)
         try {
-            // Tối ưu payload: đảm bảo các trường khớp chính xác với DB
+            // ĐÃ SỬA: Bổ sung thêm dòng items: cartItems vào payload
             const orderPayload = {
                 full_name: (info.fullName || '').trim().toUpperCase(),
                 phone: (info.phone || '').trim(),
                 address: (info.address || '').trim().toUpperCase(),
                 note: (info.note || '').trim().toUpperCase(),
-                // Lưu ý: Đảm bảo bảng orders của bạn có các cột này
                 total_amount: currentTotal,
-                payment_method: paymentMethod, // Đã khớp với cột vừa tạo
+                payment_method: paymentMethod, 
                 status: paymentMethod === 'COD' ? 'PENDING_COD' : 'PENDING_TRANSFER',
+                items: cartItems, // <--- THÊM DÒNG NÀY ĐỂ FIX LỖI NULL TRONG SUPABASE
                 created_at: new Date().toISOString()
             }
 
@@ -80,16 +86,18 @@ export default function CheckoutPage() {
             const { data, error } = await supabase
                 .from('orders')
                 .insert([orderPayload])
-                .select() // Thêm .select() để hỗ trợ debug nếu cần
+                .select() 
 
             if (error) {
                 console.error("Supabase Error:", error)
                 throw error
             }
 
-            // Nếu thành công
+            // ĐÃ SỬA: Lưu lại tổng tiền trước khi làm trống giỏ hàng
+            setOrderFinalTotal(currentTotal);
             setShowSuccess(true)
             clearCart()
+            
         } catch (error) {
             console.error("Lỗi khi xử lý đơn hàng:", error)
             showNotification('CÓ LỖI XẢY RA. VUI LÒNG THỬ LẠI!', 'error')
@@ -120,11 +128,12 @@ export default function CheckoutPage() {
                         </div>
                         <div className="flex justify-between pt-2 border-t border-zinc-900">
                             <span className="text-zinc-500">TOTAL:</span>
-                            <span className="text-white font-bold">VND {currentTotal.toLocaleString()}</span>
+                            {/* ĐÃ SỬA: Thay currentTotal bằng orderFinalTotal */}
+                            <span className="text-white font-bold">VND {orderFinalTotal.toLocaleString()}</span>
                         </div>
                     </div>
                     <button
-                        onClick={() => router.push('/store')} // Sử dụng điều hướng SPA mượt mà không reload trang
+                        onClick={() => router.push('/store')}
                         className="w-full bg-emerald-500 text-black py-3 text-[11px] font-black italic tracking-widest uppercase hover:bg-emerald-400 transition-colors"
                     >
                         CONTINUE SHOPPING
@@ -209,27 +218,40 @@ export default function CheckoutPage() {
                         {paymentMethod === 'BANK' && (
                             <div className="p-4 bg-zinc-950 border border-zinc-900 space-y-4 animate-fade-in text-[10px]">
                                 <p className="text-zinc-400 leading-relaxed font-sans normal-case text-xs">
-                                    Vui lòng chuyển khoản chính xác số tiền vào một trong các tài khoản cá nhân của thành viên đội ngũ <span className="text-white font-mono uppercase">YUNLUB GALLERY</span> bên dưới:
+                                    Vui lòng quét mã QR hoặc chuyển khoản chính xác số tiền vào tài khoản bên dưới:
                                 </p>
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                                    {teamBankAccounts.map((account, i) => (
-                                        <div key={i} className="bg-black p-3 border border-zinc-900 space-y-1 select-all hover:border-zinc-700 transition-colors">
-                                            <p className="text-zinc-500 tracking-wider text-[9px]">{account.bank}</p>
-                                            <p className="text-white font-black font-mono text-xs">{account.number}</p>
-                                            <p className="text-zinc-400 font-mono">CTK: {account.owner}</p>
+                                    {bankAccounts.map((account, i) => (
+                                        <div key={i} className="bg-black p-3 border border-zinc-900 space-y-3 hover:border-zinc-700 transition-colors">
+                                            {/* QR CODE GENERATOR */}
+                                            <div className="bg-white p-2 w-full aspect-square">
+                                                <img
+                                                    src={`https://img.vietqr.io/image/${account.bank_code}-${account.account_number}-compact2.png?amount=${currentTotal}&addInfo=YUNLUB ${info.phone || 'DONHANG'}&accountName=${encodeURIComponent(account.account_owner)}`}
+                                                    alt="QR Payment"
+                                                    className="w-full h-full object-contain"
+                                                />
+                                            </div>
+
+                                            <div className="space-y-1">
+                                                <p className="text-zinc-500 tracking-wider text-[9px]">{account.bank_name}</p>
+                                                <p className="text-white font-black font-mono text-xs">{account.account_number}</p>
+                                                <p className="text-zinc-400 font-mono">CTK: {account.account_owner}</p>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
+
                                 <div className="border-t border-zinc-900/60 pt-3">
                                     <p className="text-zinc-400 font-sans text-xs normal-case">
-                                        Nội dung chuyển khoản (Cú pháp bắt buộc): <br />
-                                        <span className="font-mono bg-white text-black px-2 py-0.5 font-bold uppercase select-all inline-block mt-1">
-                                            YUNLUB {info.phone ? info.phone.trim() : 'SỐ ĐIỆN THOẠI CỦA BẠN'}
+                                        Nội dung chuyển khoản (Tự động điền): <br />
+                                        <span className="font-mono bg-white text-black px-2 py-0.5 font-bold uppercase inline-block mt-1">
+                                            YUNLUB {info.phone ? info.phone.trim() : 'SĐT CỦA BẠN'}
                                         </span>
                                     </p>
                                 </div>
                             </div>
-                        )}
+                        )}  
                     </form>
                 </div>
 

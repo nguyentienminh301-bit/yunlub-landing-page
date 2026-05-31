@@ -63,14 +63,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     const addToCart = (newItem: CartItem) => {
         setCartItems(prevItems => {
-            const existingIndex = prevItems.findIndex(
+            // Kiểm tra xem sản phẩm đã có trong giỏ chưa (trùng id và size)
+            const isExists = prevItems.find(
                 item => item.id === newItem.id && item.size === newItem.size
             )
-            if (existingIndex > -1) {
-                const updated = [...prevItems]
-                updated[existingIndex].quantity += newItem.quantity
-                return updated
+
+            if (isExists) {
+                // Nếu đã tồn tại, ta chỉ tăng thêm 1 đơn vị
+                return prevItems.map(item =>
+                    (item.id === newItem.id && item.size === newItem.size)
+                        ? { ...item, quantity: item.quantity + 1 }
+                        : item
+                )
             }
+
+            // Nếu chưa tồn tại, thêm mới vào giỏ
             return [...prevItems, newItem]
         })
         setIsOpenCart(true)
@@ -85,7 +92,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             removeItem(indexToUpdate)
             return
         }
-        setCartItems(prev => prev.map((item, idx) => 
+        setCartItems(prev => prev.map((item, idx) =>
             idx === indexToUpdate ? { ...item, quantity: newQty } : item
         ))
     }
@@ -95,15 +102,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <CartContext.Provider value={{ 
-            cartItems, 
-            totalCartPrice, 
+        <CartContext.Provider value={{
+            cartItems,
+            totalCartPrice,
             totalCartCount,
-            addToCart, 
-            removeItem, 
-            updateQuantity, 
-            clearCart, 
-            isOpenCart, 
+            addToCart,
+            removeItem,
+            updateQuantity,
+            clearCart,
+            isOpenCart,
             setIsOpenCart,
             isMounted
         }}>

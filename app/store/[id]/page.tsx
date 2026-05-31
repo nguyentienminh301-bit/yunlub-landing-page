@@ -96,54 +96,36 @@ export default function ProductDetailPage() {
     }
 
     // 🛒 HÀM THÊM VÀO GIỎ HÀNG VÀ UPDATE TRẠNG THÁI VOUCHER LÊN SUPABASE
-    const handleLocalAddToCart = async () => {
-        if (!product) return
+   const handleLocalAddToCart = async () => {
+    if (!product) return
 
-        // Tính toán lại giá trị cuối cùng dựa trên việc có voucher hay không
-        const finalPrice = appliedVoucher 
-            ? product.price - (product.price * appliedVoucher.discount / 100)
-            : product.price
+    const finalPrice = appliedVoucher 
+        ? product.price - (product.price * appliedVoucher.discount / 100)
+        : product.price
 
-        // 🔏 Nếu có dùng voucher thành công -> Tiến hành khóa mã này lại trên Database ngay lập tức
-        if (appliedVoucher) {
-            try {
-                const { error } = await supabase
-                    .from('vouchers')
-                    .update({ is_used: true }) // Đổi trạng thái từ false sang true
-                    .eq('code', appliedVoucher.code)
+    // CHỈ Đẩy thông tin lên giỏ hàng (Bạn có thể cân nhắc truyền thêm appliedVoucher.code vào addToCart nếu context hỗ trợ)
+    addToCart({
+        id: String(product.id),
+        name: (product.description || 'PRODUCT').toUpperCase(),
+        price: `VND ${finalPrice.toLocaleString()}`,
+        priceNumber: finalPrice,
+        image: product.image_url,
+        size: selectedSize,
+        quantity: quantity,
+        // Nếu được, hãy update interface của addToCart để nhận thêm mã voucher:
+        // voucherCode: appliedVoucher ? appliedVoucher.code : null 
+    })
 
-                if (error) throw error
-            } catch (err) {
-                console.error('Lỗi khi cập nhật trạng thái voucher:', err)
-                // Đưa thông báo lỗi đồng bộ lên giao diện thay vì gọi alert lỗi
-                setVoucherMessage({ type: 'error', text: '[ LỖI KẾT NỐI — CHƯA THỂ ÁP DỤNG VOUCHER ]' })
-                return
-            }
-        }
+    setVoucherMessage({
+        type: 'success',
+        text: appliedVoucher
+            ? `[ 🎉 THÀNH CÔNG — ĐÃ THÊM VÀO GIỎ HÀNG VỚI MỨC GIẢM ${appliedVoucher.discount}% ]`
+            : '[ 🎉 THÀNH CÔNG — ĐÃ THÊM SẢN PHẨM VÀO GIỎ HÀNG ]'
+    })
 
-        // Đẩy thông tin sản phẩm (kèm giá đã giảm nếu có) lên giỏ hàng chung
-        addToCart({
-            id: String(product.id),
-            name: (product.description || 'PRODUCT').toUpperCase(),
-            price: `VND ${finalPrice.toLocaleString()}`,
-            priceNumber: finalPrice,
-            image: product.image_url,
-            size: selectedSize,
-            quantity: quantity
-        })
-
-        // 🔥 ĐỒNG BỘ HIỂN THỊ TRẠNG THÁI THÀNH CÔNG LÊN GIAO DIỆN (Xóa bỏ hoàn toàn alert)
-        setVoucherMessage({
-            type: 'success',
-            text: appliedVoucher
-                ? `[ 🎉 THÀNH CÔNG — ĐÃ THÊM VÀO GIỎ HÀNG VỚI MỨC GIẢM ${appliedVoucher.discount}% ]`
-                : '[ 🎉 THÀNH CÔNG — ĐÃ THÊM SẢN PHẨM VÀO GIỎ HÀNG ]'
-        })
-
-        // Reset lại ô nhập để chuẩn bị cho lượt nhập khác (nếu cần) nhưng vẫn giữ dòng text thành công hiển thị
-        setAppliedVoucher(null)
-        setVoucherCode('')
-    }
+    setAppliedVoucher(null)
+    setVoucherCode('')
+}
 
     if (isLoading) {
         return (
