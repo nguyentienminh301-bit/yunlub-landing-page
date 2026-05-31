@@ -8,35 +8,49 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-// 🧭 THỜI GIAN ĐÍCH ĐẾM NGƯỢC
-const TARGET_DATE = new Date('2026-05-30T21:00:00')
+// 🧭 CẤU HÌNH MỐC THỜI GIAN ĐỐI CHIẾU
+const EARLY_ACCESS_END = new Date('2026-05-30T21:00:00') // Hết hạn đếm ngược danh sách chờ
+const STORE_OPEN_TIME = new Date('2026-05-31T22:00:00')   // 23h00 Hôm nay - Chính thức mở Store xả xích không cần Pass
+
+type PagePhase = 'COUNTDOWN' | 'PASSWORD_GATE' | 'STORE_OPEN'
 
 export default function Home() {
   const router = useRouter()
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
   const [isMounted, setIsMounted] = useState(false)
-  const [isLocked, setIsLocked] = useState(false) // false: Đếm ngược/Đăng ký IG, true: Hết giờ -> Hiện Pass Gate
+  const [phase, setPhase] = useState<PagePhase>('COUNTDOWN')
 
-  // Form Đăng ký IG (Trước khi mở bán)
+  // Form Đăng ký IG
   const [igHandle, setIgHandle] = useState('')
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<{ type: 'success' | 'error' | null; msg: string }>({ type: null, msg: '' })
 
-  // Form Mật khẩu độc quyền (Khi đã hết giờ - Tone Đen Trắng)
+  // Form Mật khẩu độc quyền
   const [password, setPassword] = useState('')
   const [passError, setPassError] = useState('')
   const [checkingPass, setCheckingPass] = useState(false)
 
-  // 🛠️ QUẢN LÝ VÒNG ĐỜI ĐẾM NGƯỢC
+  // 🛠️ QUẢN LÝ TIME-LINE TỰ ĐỘNG THEO GIỜ HỆ THỐNG
   useEffect(() => {
-    const calculateTimeLeft = () => {
+    const updateTimelinePhase = () => {
       const now = new Date().getTime()
-      const distance = TARGET_DATE.getTime() - now
 
-      if (distance <= 0) {
-        setIsLocked(true) // Hết giờ -> Chuyển sang form Password Đen Trắng
+      // GIAI ĐOẠN 3: Đã qua 23h ngày hôm nay -> Vào thẳng store công khai
+      if (now >= STORE_OPEN_TIME.getTime()) {
+        setPhase('STORE_OPEN')
+        router.push('/store')
         return { days: 0, hours: 0, minutes: 0, seconds: 0 }
       }
+
+      // GIAI ĐOẠN 2: Đã qua hạn đếm ngược nhưng chưa tới 23h hôm nay -> Hiện Pass Gate
+      if (now >= EARLY_ACCESS_END.getTime()) {
+        setPhase('PASSWORD_GATE')
+        return { days: 0, hours: 0, minutes: 0, seconds: 0 }
+      }
+
+      // GIAI ĐOẠN 1: Còn thời gian đếm ngược
+      setPhase('COUNTDOWN')
+      const distance = EARLY_ACCESS_END.getTime() - now
       return {
         days: Math.floor(distance / (1000 * 60 * 60 * 24)),
         hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
@@ -45,16 +59,16 @@ export default function Home() {
       }
     }
 
-    const initialTime = calculateTimeLeft()
+    const initialTime = updateTimelinePhase()
     setTimeLeft(initialTime)
     setIsMounted(true)
 
     const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft())
+      setTimeLeft(updateTimelinePhase())
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [])
+  }, [router])
 
   // 📝 HÀM LƯU INSTAGRAM
   const handleRegister = async (e: React.FormEvent) => {
@@ -116,6 +130,29 @@ export default function Home() {
     }
   }
 
+  // Tránh lỗi Hydration nhấp nháy giao diện khi render trên Server
+  if (!isMounted) {
+    return (
+      <main className="min-h-screen bg-black text-white flex items-center justify-center font-mono text-[10px] tracking-widest">
+        [ CONNECTING TO YUNLUB GALLERY SYSTEM... ]
+      </main>
+    )
+  }
+
+  // Nếu đã qua 23h hôm nay, hiển thị trạng thái chuyển hướng tối giản tránh lộ form pass
+  if (phase === 'STORE_OPEN') {
+    return (
+      <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center font-mono space-y-2 select-none">
+        <div className="text-[10px] tracking-[0.4em] text-zinc-400 animate-pulse uppercase">
+          [ OPENING THE GALLERY GATE ]
+        </div>
+        <div className="text-[9px] tracking-widest text-zinc-600 uppercase">
+          Redirecting to store...
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-screen text-white flex flex-col items-center justify-center p-6 font-sans relative overflow-hidden select-none selection:bg-white selection:text-black">
       {/* Background */}
@@ -127,37 +164,37 @@ export default function Home() {
 
       <div className="flex flex-col items-center justify-center text-center space-y-12 z-20 w-full">
         
-        {/* 1. ĐỒNG HỒ ĐẾM NGƯỢC */}
-        {!isLocked && (
+        {/* 1. ĐỒNG HỒ ĐẾM NGƯỢC (CHỈ HIỆN KHI TRONG PHASE COUNTDOWN) */}
+        {phase === 'COUNTDOWN' && (
           <div className="flex justify-center gap-6 md:gap-12 text-white drop-shadow-2xl animate-fade-in">
             <div className="flex flex-col">
               <span className="text-5xl md:text-8xl font-black italic tracking-tighter leading-none">
-                {!isMounted ? '--' : (timeLeft.days < 10 ? `0${timeLeft.days}` : timeLeft.days)}
+                {timeLeft.days < 10 ? `0${timeLeft.days}` : timeLeft.days}
               </span>
               <span className="text-[10px] md:text-xs tracking-[0.4em] uppercase text-zinc-400 mt-2">Days</span>
             </div>
             <div className="flex flex-col">
               <span className="text-5xl md:text-8xl font-black italic tracking-tighter leading-none">
-                {!isMounted ? '--' : (timeLeft.hours < 10 ? `0${timeLeft.hours}` : timeLeft.hours)}
+                {timeLeft.hours < 10 ? `0${timeLeft.hours}` : timeLeft.hours}
               </span>
               <span className="text-[10px] md:text-xs tracking-[0.4em] uppercase text-zinc-400 mt-2">Hours</span>
             </div>
             <div className="flex flex-col">
               <span className="text-5xl md:text-8xl font-black italic tracking-tighter leading-none">
-                {!isMounted ? '--' : (timeLeft.minutes < 10 ? `0${timeLeft.minutes}` : timeLeft.minutes)}
+                {timeLeft.minutes < 10 ? `0${timeLeft.minutes}` : timeLeft.minutes}
               </span>
               <span className="text-[10px] md:text-xs tracking-[0.4em] uppercase text-zinc-400 mt-2">Mins</span>
             </div>
             <div className="flex flex-col">
               <span className="text-5xl md:text-8xl font-black italic tracking-tighter leading-none text-zinc-400">
-                {!isMounted ? '--' : (timeLeft.seconds < 10 ? `0${timeLeft.seconds}` : timeLeft.seconds)}
+                {timeLeft.seconds < 10 ? `0${timeLeft.seconds}` : timeLeft.seconds}
               </span>
               <span className="text-[10px] md:text-xs tracking-[0.4em] uppercase text-zinc-400 mt-2">Secs</span>
             </div>
           </div>
         )}
 
-        {/* 2. KHU VỰC LOGO SIÊU NỔI BẬT (ĐÃ NÂNG CẤP HIỆU ỨNG TỎA SÁNG CỰC ĐẠI - ULTRA GLOW EFFECT) */}
+        {/* 2. LOGO BRAND */}
         <div className="py-4 group">
           <img
             src="/logo.svg"
@@ -166,11 +203,11 @@ export default function Home() {
           />
         </div>
 
-        {/* 3. KHU VỰC FORM TƯƠNG TÁC ĐỘNG */}
+        {/* 3. KHU VỰC FORM ĐỘNG QUYẾT ĐỊNH BỞI TIMELINE */}
         <div className="w-full max-w-md px-4">
           
-          {!isLocked ? (
-            /* [TRẠNG THÁI CÒN GIỜ]: Form Đăng ký IG */
+          {phase === 'COUNTDOWN' ? (
+            /* [TRẠNG THÁI CÒN GIỜ]: Form Đăng ký IG Waitlist */
             <div className="animate-fade-in">
               <form onSubmit={handleRegister} className="flex border-2 border-white p-1 bg-black/20 backdrop-blur-md">
                 <input
@@ -201,12 +238,10 @@ export default function Home() {
               </p>
             </div>
           ) : (
-            
-            /* [TRẠNG THÁI HẾT GIỜ]: Cổng Mật Khẩu Đen - Trắng Quét Code Supabase */
+            /* [TRẠNG THÁI KHÓA]: Cổng Mật Khẩu Đen - Trắng (Hết hạn Countdown và trước 23h) */
             <div className="w-full flex flex-col items-center space-y-6 animate-fade-in">
               
               <form onSubmit={handleSubmitAccess} className="w-full flex items-center h-12 overflow-hidden border border-zinc-800 bg-zinc-950 focus-within:border-zinc-500 transition-colors">
-                
                 <div className="flex-1 h-full flex items-center px-4">
                   <input 
                     type="password"
@@ -231,7 +266,6 @@ export default function Home() {
                 </button>
               </form>
 
-              {/* 🔒 KHU VỰC THÀNH PHẦN ĐÃ ĐƯỢC THÊM LẠI: ICON Ổ KHÓA & EXCLUSIVE ACCESS CHUẨN MOCKUP */}
               <div className="flex flex-col items-center space-y-2 select-none">
                 <div className="flex items-center space-x-2 text-[9px] font-mono tracking-[0.25em] text-zinc-500 uppercase">
                   <svg 
@@ -252,7 +286,6 @@ export default function Home() {
                   <span>Exclusive Access</span>
                 </div>
                 
-                {/* Thông báo lỗi từ database (nếu gõ sai) sẽ xuất hiện gọn gàng bên dưới */}
                 {passError && (
                   <p className="text-[9px] font-mono tracking-widest text-red-500 font-bold uppercase mt-1">
                     {passError}
@@ -264,8 +297,8 @@ export default function Home() {
 
         </div>
 
-        {/* 4. CHÂN TRANG INSTAGRAM LINK & FOOTER (CHỈ HIỂN THỊ KHI CHƯA KHÓA WEB, HẾT GIỜ SẼ ẨN TOÀN BỘ) */}
-        {!isLocked && (
+        {/* 4. CHÂN TRANG INSTAGRAM LINK & FOOTER (TỰ ĐỘNG ẨN KHI CHUYỂN SANG TRẠNG THÁI KHÓA PASSWORD) */}
+        {phase === 'COUNTDOWN' && (
           <>
             <div className="pt-6 border-t border-white/10 w-full max-w-xs md:max-w-md">
               <p className="text-[10px] tracking-[0.6em] uppercase font-bold text-zinc-600 mb-4">Official</p>
