@@ -3,6 +3,21 @@
 @theme {
   /* Thiết lập font chữ mặc định cho toàn bộ trang web */
   --font-sans: 'Arial', 'Helvetica', sans-serif;
+
+  /* 🎬 Định nghĩa Keyframes & Animation chuẩn cấu pháp Tailwind CSS v4 */
+  --keyframes-slide-in-right: {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  };
+  
+  /* Tạo lớp class .animate-slide-in-right tự động */
+  --animate-slide-in-right: slide-in-right 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 :root {
@@ -15,4 +30,13 @@ body {
   color: var(--foreground);
   margin: 0;
   padding: 0;
+}
+
+/* ⚙️ Tiện ích bổ sung: Ẩn thanh cuộn xấu xí cho các vùng danh sách sản phẩm */
+@utility scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+  &::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
 }

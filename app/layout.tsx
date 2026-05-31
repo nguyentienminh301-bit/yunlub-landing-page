@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { CartProvider } from './CartProvider';
-import CartDrawer from './CartDrawer'; // Tách phần giao diện giỏ hàng trượt ra component riêng
+import { CartProvider } from "./CartProvider"; // Bọc giỏ hàng cho toàn bộ trang (bao gồm /checkout)
+import CartDrawer from "./CartDrawer"; // Thanh ngăn kéo giỏ hàng hiển thị toàn trang
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,11 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Yunlub Gallery',
-  description: 'Early Access Portal',
-  icons: {
-    icon: '/logo.svg',
-  },
+  title: "Yunlub Gallery",
+  description: "Launching soon",
 };
 
 export default function RootLayout({
@@ -28,16 +25,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-black text-white selection:bg-white selection:text-black">
+    <html lang="en">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {/* 🛒 Cung cấp Context giỏ hàng cho cả Store và Checkout */}
         <CartProvider>
-          {/* Toàn bộ nội dung các trang con (Store, Product,...) */}
           {children}
-          
-          {/* 🛒 GIAO DIỆN GIỎ HÀNG TRƯỢT POP-UP (Hiển thị phủ lên trên khi isOpenCart = true) */}
           <CartDrawer />
         </CartProvider>
       </body>
