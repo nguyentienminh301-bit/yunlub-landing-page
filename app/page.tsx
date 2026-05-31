@@ -10,7 +10,7 @@ const supabase = createClient(
 
 // 🧭 CẤU HÌNH MỐC THỜI GIAN ĐỐI CHIẾU
 const EARLY_ACCESS_END = new Date('2026-05-30T21:00:00') // Hết hạn đếm ngược danh sách chờ
-const STORE_OPEN_TIME = new Date('2026-05-31T22:00:00')   // 23h00 Hôm nay - Chính thức mở Store xả xích không cần Pass
+const STORE_OPEN_TIME = new Date('2026-05-31T23:00:00')   // 23h00 Hôm nay - Chính thức mở Store xả xích không cần Pass
 
 type PagePhase = 'COUNTDOWN' | 'PASSWORD_GATE' | 'STORE_OPEN'
 
