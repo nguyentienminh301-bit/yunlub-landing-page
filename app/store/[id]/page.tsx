@@ -7,12 +7,20 @@ import { supabase } from '../../../lib/supabase'
 import { useCart } from '../../CartProvider'
 import { motion, AnimatePresence } from 'framer-motion'
 
+// --- 1. Định nghĩa Interface cho Variant & Product ---
+interface ProductVariant {
+    id: number
+    size: string
+    stock: number
+}
+
 interface ProductFromSupabase {
     id: number
     price: number
     image_url: string
     description: string
     category: string
+    product_variants: ProductVariant[] // Thêm mảng chứa các size liên kết
 }
 
 export default function ProductDetailPage() {
@@ -35,6 +43,20 @@ export default function ProductDetailPage() {
     // --- State ẩn/hiện Size Chart ---
     const [isOpenSizeChart, setIsOpenSizeChart] = useState(false)
 
+    // --- 2. Tìm thông tin Kho của Size đang chọn hiện tại ---
+    const currentVariant = product?.product_variants?.find(v => v.size === selectedSize)
+    const maxStockAvailable = currentVariant ? currentVariant.stock : 0
+    const isSelectedSizeOutOfStock = maxStockAvailable === 0
+
+    // Tự động điều chỉnh số lượng (quantity) khi đổi Size
+    useEffect(() => {
+        if (maxStockAvailable === 0) {
+            setQuantity(0)
+        } else {
+            setQuantity(1)
+        }
+    }, [selectedSize, maxStockAvailable])
+
     useEffect(() => {
         if (!rawId) return
 
@@ -43,9 +65,21 @@ export default function ProductDetailPage() {
                 setIsLoading(true)
                 const productId = Number(rawId)
 
+                // --- 3. Thay đổi câu lệnh .select('*') thành Join bảng product_variants ---
                 const { data, error } = await supabase
                     .from('products')
-                    .select('*')
+                    .select(`
+                        id,
+                        price,
+                        image_url,
+                        description,
+                        category,
+                        product_variants (
+                            id,
+                            size,
+                            stock
+                        )
+                    `)
                     .eq('id', productId)
                     .single()
 
@@ -55,7 +89,15 @@ export default function ProductDetailPage() {
                 }
 
                 if (data) {
-                    setProduct(data)
+                    setProduct(data as ProductFromSupabase)
+                    
+                    // Thao tác thông minh: Tự động chọn size đầu tiên còn hàng để trải nghiệm mượt mà hơn
+                    const firstAvailableVariant = data.product_variants?.find((v: any) => v.stock > 0)
+                    if (firstAvailableVariant) {
+                        setSelectedSize(firstAvailableVariant.size)
+                    } else if (data.product_variants && data.product_variants.length > 0) {
+                        setSelectedSize(data.product_variants[0].size)
+                    }
                 }
             } catch (err) {
                 console.error('Lỗi khi tải chi tiết sản phẩm:', err)
@@ -119,6 +161,12 @@ export default function ProductDetailPage() {
 
     const handleLocalAddToCart = async () => {
         if (!product) return
+        
+        // Chặn người dùng cố tình thêm khi hết hàng
+        if (isSelectedSizeOutOfStock || quantity === 0) {
+            setVoucherMessage({ type: 'error', text: '[ SẢN PHẨM HIỆN ĐANG HẾT HÀNG CHO KÍCH CỠ NÀY ]' })
+            return
+        }
 
         if (appliedVoucher) {
             const { error: updateError } = await supabase
@@ -238,13 +286,13 @@ export default function ProductDetailPage() {
                                     <p className="text-lg text-white font-bold">VND {displayedPrice.toLocaleString()}</p>
                                     <p className="text-xs text-zinc-600 line-through">VND {safePrice.toLocaleString()}</p>
                                 </>
-                            ) : (
+                             ) : (
                                 <p className="text-lg text-white">VND {safePrice.toLocaleString()}</p>
                             )}
                         </div>
                     </div>
 
-                    {/* 📏 CHỌN KÍCH CỠ & SIZE CHART */}
+                    {/* 📏 4. CHỌN KÍCH CỠ RENDER THEO DATABASE */}
                     <div className="space-y-3">
                         <div className="flex justify-between items-center max-w-xs">
                             <label className="text-[9px] font-mono tracking-widest text-zinc-500 uppercase block">SELECT SIZE:</label>
@@ -257,25 +305,47 @@ export default function ProductDetailPage() {
                             </button>
                         </div>
                         <div className="grid grid-cols-4 gap-2 max-w-xs">
-                            {['M', 'L', 'XL', 'XXL'].map((size) => (
-                                <button
-                                    key={size}
-                                    type="button"
-                                    onClick={() => setSelectedSize(size)}
-                                    className={`py-2.5 border text-[11px] font-mono transition-colors ${selectedSize === size
-                                        ? 'bg-white text-black border-white font-bold'
-                                        : 'bg-black text-white border-zinc-800 hover:border-zinc-500'
-                                        }`}
-                                >
-                                    {size}
-                                </button>
-                            ))}
+                            {product.product_variants && product.product_variants.length > 0 ? (
+                                product.product_variants
+                                    // Sắp xếp các size theo thứ tự chuẩn thời trang cho trực quan
+                                    .sort((a, b) => {
+                                        const sizeOrder = ['M', 'L', 'XL', 'XXL'];
+                                        return sizeOrder.indexOf(a.size) - sizeOrder.indexOf(b.size);
+                                    })
+                                    .map((variant) => {
+                                        const hasStock = variant.stock > 0;
+                                        const isSelected = selectedSize === variant.size;
+
+                                        return (
+                                            <button
+                                                key={variant.id}
+                                                type="button"
+                                                onClick={() => setSelectedSize(variant.size)}
+                                                className={`py-2.5 border text-[11px] font-mono transition-all relative ${
+                                                    isSelected
+                                                        ? 'bg-white text-black border-white font-bold'
+                                                        : hasStock
+                                                        ? 'bg-black text-white border-zinc-800 hover:border-zinc-500'
+                                                        : 'bg-zinc-950 text-zinc-600 border-zinc-900 line-through cursor-not-allowed'
+                                                }`}
+                                            >
+                                                {variant.size}
+                                                {!hasStock && (
+                                                    <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[6px] text-red-500/80 font-bold font-sans scale-90">
+                                                        SOLD
+                                                    </span>
+                                                )}
+                                            </button>
+                                        )
+                                    })
+                            ) : (
+                                <p className="text-[9px] font-mono text-zinc-600 col-span-4">[ NO SIZES DISPLAYED ]</p>
+                            )}
                         </div>
                     </div>
 
-                    {/* ⚡ PHẦN CHI TIẾT & BẢO QUẢN SẢN PHẨM ĐƯỢC THÊM VÀO ĐÂY ⚡ */}
+                    {/* Khối Chi tiết & Bảo quản */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-sm pt-4 border-t border-zinc-900 font-mono text-[10px] tracking-wider text-zinc-400 leading-relaxed">
-                        {/* Khối Chi tiết */}
                         <div className="space-y-2">
                             <p className="text-white font-bold text-[9px] tracking-widest uppercase">// PRODUCT DETAILS</p>
                             <ul className="space-y-1 list-none pl-0">
@@ -285,7 +355,6 @@ export default function ProductDetailPage() {
                             </ul>
                         </div>
 
-                        {/* Khối Bảo quản */}
                         <div className="space-y-2">
                             <p className="text-white font-bold text-[9px] tracking-widest uppercase">// CARE INSTRUCTIONS</p>
                             <ul className="space-y-1 list-none pl-0">
@@ -296,22 +365,33 @@ export default function ProductDetailPage() {
                         </div>
                     </div>
 
-                    {/* 🔢 SỐ LƯỢNG MUA */}
+                    {/* 🔢 5. SỐ LƯỢNG MUA (BỊ GIỚI HẠN BỞI MAX STOCK TRONG DB) */}
                     <div className="space-y-3 pt-2 border-t border-zinc-900">
-                        <label className="text-[9px] font-mono tracking-widest text-zinc-500 uppercase block">QUANTITY:</label>
+                        <div className="flex justify-between items-center max-w-xs">
+                            <label className="text-[9px] font-mono tracking-widest text-zinc-500 uppercase block">QUANTITY:</label>
+                            {product && (
+                                <span className="text-[9px] font-mono text-zinc-600 uppercase">
+                                    {/* [ STOCK: {maxStockAvailable} PIECES ] */}
+                                </span>
+                            )}
+                        </div>
                         <div className="flex items-center border border-zinc-800 w-32 bg-black">
                             <button
                                 type="button"
                                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                                className="w-10 py-2 text-xs font-mono text-zinc-400 hover:text-white border-r border-zinc-900 focus:outline-none"
+                                disabled={isSelectedSizeOutOfStock}
+                                className="w-10 py-2 text-xs font-mono text-zinc-400 hover:text-white border-r border-zinc-900 focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                                 -
                             </button>
-                            <span className="flex-1 text-center font-mono text-xs text-white">{quantity}</span>
+                            <span className="flex-1 text-center font-mono text-xs text-white">
+                                {quantity}
+                            </span>
                             <button
                                 type="button"
-                                onClick={() => setQuantity(q => q + 1)}
-                                className="w-10 py-2 text-xs font-mono text-zinc-400 hover:text-white border-l border-zinc-900 focus:outline-none"
+                                onClick={() => setQuantity(q => Math.min(maxStockAvailable, q + 1))}
+                                disabled={isSelectedSizeOutOfStock || quantity >= maxStockAvailable}
+                                className="w-10 py-2 text-xs font-mono text-zinc-400 hover:text-white border-l border-zinc-900 focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                                 +
                             </button>
@@ -355,15 +435,25 @@ export default function ProductDetailPage() {
                         </AnimatePresence>
                     </div>
 
-                    {/* 🛒 NÚT ĐẶT HÀNG */}
+                    {/* 🛒 6. NÚT ĐẶT HÀNG (THAY ĐỔI THEO TRẠNG THÁI HẾT HÀNG) */}
                     <div>
                         <motion.button
-                            whileTap={{ scale: 0.98 }}
+                            whileTap={!isSelectedSizeOutOfStock ? { scale: 0.98 } : {}}
                             type="button"
+                            disabled={isSelectedSizeOutOfStock}
                             onClick={handleLocalAddToCart}
-                            className="w-full max-w-sm bg-white text-black py-4 text-[11px] font-black italic tracking-widest uppercase hover:bg-zinc-200 transition-colors duration-300 mt-2"
+                            className={`w-full max-w-sm py-4 text-[11px] font-black italic tracking-widest uppercase transition-colors duration-300 mt-2 ${
+                                isSelectedSizeOutOfStock
+                                    ? 'bg-zinc-900 text-zinc-600 cursor-not-allowed line-through'
+                                    : 'bg-white text-black hover:bg-zinc-200'
+                            }`}
                         >
-                            ADD TO CART {appliedVoucher && `(VND ${(displayedPrice * quantity).toLocaleString()})`}
+                            {isSelectedSizeOutOfStock 
+                                ? 'OUT OF STOCK' 
+                                : appliedVoucher 
+                                ? `ADD TO CART (VND ${(displayedPrice * quantity).toLocaleString()})` 
+                                : 'ADD TO CART'
+                            }
                         </motion.button>
                     </div>
                 </div>
@@ -387,7 +477,6 @@ export default function ProductDetailPage() {
                             onClick={(e) => e.stopPropagation()}
                             className="bg-zinc-950 border border-zinc-800 w-full max-w-2xl p-6 md:p-8 space-y-6 relative text-white font-mono text-xs tracking-wider"
                         >
-                            {/* Nút Close */}
                             <button 
                                 onClick={() => setIsOpenSizeChart(false)}
                                 className="absolute top-4 right-4 text-zinc-500 hover:text-white font-bold text-sm focus:outline-none"
@@ -399,9 +488,7 @@ export default function ProductDetailPage() {
                                 <h3 className="text-sm font-black tracking-[0.2em] uppercase">// PRODUCT SIZE SPECIFICATIONS</h3>
                             </div>
 
-                            {/* Grid chứa 2 bảng thông số */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Bảng 1: Kích thước sản phẩm */}
                                 <div className="space-y-2">
                                     <p className="text-[10px] text-zinc-500 font-bold uppercase">// CLOTHING MEASUREMENTS (cm)</p>
                                     <div className="border border-zinc-900 overflow-hidden">
@@ -444,7 +531,6 @@ export default function ProductDetailPage() {
                                     </div>
                                 </div>
 
-                                {/* Bảng 2: Gợi ý theo Chiều cao/Cân nặng */}
                                 <div className="space-y-2">
                                     <p className="text-[10px] text-zinc-500 font-bold uppercase">// BODY RECOMMENDATIONS</p>
                                     <div className="border border-zinc-900 overflow-hidden">
@@ -483,21 +569,15 @@ export default function ProductDetailPage() {
                                 </div>
                             </div>
 
-                            {/* Khối Minh Họa Vẽ lại chiếc quần bằng SVG thuần */}
                             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-zinc-900">
                                 <div className="w-32 h-32 flex-shrink-0 bg-zinc-900/30 p-2 border border-zinc-900 rounded">
                                     <svg viewBox="0 0 100 100" className="w-full h-full stroke-zinc-500 fill-none stroke-1">
-                                        {/* Cạp quần */}
                                         <path d="M 25,25 Q 50,28 75,25 L 72,32 Q 50,35 28,32 Z" className="stroke-zinc-400" />
-                                        {/* Thân quần & Ống quần */}
                                         <path d="M 25,25 L 15,80 L 45,85 L 50,60 L 55,85 L 85,80 L 75,25" />
-                                        {/* Đường chỉ trang trí nhẹ */}
                                         <path d="M 15,80 Q 30,82 45,85 M 55,85 Q 70,82 85,80" className="stroke-zinc-600 stroke-dashed" />
-                                        {/* Label Text chỉ hướng mô phỏng */}
                                         <text x="50" y="21" textAnchor="middle" className="fill-zinc-500 text-[6px] font-sans">WIDTH</text>
                                         <text x="86" y="55" textAnchor="middle" className="fill-zinc-500 text-[6px] font-sans" transform="rotate(78, 86, 55)">LENGTH</text>
                                         <text x="30" y="93" textAnchor="middle" className="fill-zinc-500 text-[6px] font-sans">BOTTOM</text>
-                                        {/* Mũi tên định hướng nhỏ */}
                                         <path d="M 25,15 L 75,15 M 25,15 L 29,12 M 25,15 L 29,18 M 75,15 L 71,12 M 75,15 L 71,18" className="stroke-zinc-600" />
                                     </svg>
                                 </div>
