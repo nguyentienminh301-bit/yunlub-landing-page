@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "./CartProvider"; // Bọc giỏ hàng cho toàn bộ trang (bao gồm /checkout)
 import CartDrawer from "./CartDrawer"; // Thanh ngăn kéo giỏ hàng hiển thị toàn trang
+import { Analytics } from "@vercel/analytics/react"; // 📈 Thêm Vercel Analytics vào đây
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,6 +32,9 @@ export default function RootLayout({
         <CartProvider>
           {children}
           <CartDrawer />
+          
+          {/* 📈 Đo lường traffic tự động cho toàn bộ trang web */}
+          <Analytics />
         </CartProvider>
       </body>
     </html>
