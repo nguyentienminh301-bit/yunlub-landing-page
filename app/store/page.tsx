@@ -139,12 +139,12 @@ export default function StorePage() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.6, ease: "easeOut" }}
-                    className="hidden md:flex w-56 flex-col justify-between shrink-0 sticky top-8 h-[calc(100vh-100px)] z-10"
+                    className="hidden md:flex w-56 flex-col justify-between shrink-0 sticky top-2 h-[calc(100vh-8px)] z-10"
                 >
                     <div className="flex flex-col space-y-8">
                         <div
                             onClick={() => setActiveCategory('All')}
-                            className="w-24 h-24 flex items-center justify-center cursor-pointer transition-transform hover:scale-105"
+                            className="w-[110px] h-[110px] flex items-center justify-center cursor-pointer transition-transform hover:scale-105"
                         >
                             <img src="/logo%20copy.svg" alt="Yunlub Gallery Logo" className="w-full h-full object-contain" />
                         </div>
