@@ -149,20 +149,22 @@ export default function StorePage() {
                             <img src="/logo%20copy.svg" alt="Yunlub Gallery Logo" className="w-full h-full object-contain" />
                         </div>
 
-                        <nav className="flex flex-col space-y-3.5 text-[14px] font-black italic tracking-widest relative">
+                        <nav className="flex flex-col space-y-3.5 text-[11px] font-mono font-medium tracking-[0.18em] relative">
                             {CATEGORIES.map((cat) => (
                                 <button
                                     key={`desktop-${cat}`}
                                     onClick={() => setActiveCategory(cat)}
-                                    className={`text-left uppercase transition-colors block relative ${
-                                        activeCategory.toLowerCase() === cat.toLowerCase() ? 'text-white' : 'text-zinc-500 hover:text-white'
+                                    className={`w-fit uppercase transition-colors block relative ${
+                                        activeCategory.toLowerCase() === cat.toLowerCase() 
+                                            ? 'text-white' 
+                                            : 'text-zinc-500 hover:text-white'
                                     }`}
                                 >
                                     {cat}
                                     {activeCategory.toLowerCase() === cat.toLowerCase() && (
                                         <motion.div
                                             layoutId="activeCategory"
-                                            className="absolute -bottom-1 left-0 right-0 h-[2px] bg-white"
+                                            className="absolute -bottom-1 left-0 right-0 h-[1px] bg-white"
                                             transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                         />
                                     )}
