@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useCart } from '../CartProvider'
+import StoreHeader from "./StoreHeader"
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import { motion, AnimatePresence, Variants } from 'framer-motion'
@@ -34,6 +36,7 @@ const itemVariants: Variants = {
 export default function StorePage() {
     const [activeCategory, setActiveCategory] = useState('All')
     const [productsList, setProductsList] = useState<ProductFromSupabase[]>([])
+    const { setIsOpenCart, isMounted, totalCartCount } = useCart()
     const [isLoading, setIsLoading] = useState(true)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
@@ -73,40 +76,52 @@ export default function StorePage() {
             {/* =========================================
                 1. MOBILE TOP BAR
             ========================================= */}
-            <div className="md:hidden w-full mb-6 shrink-0">
-                
-                {/* Nút Hamburger Menu */}
-                <button
-                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                    className="absolute top-5 left-4 text-zinc-400 hover:text-white transition flex flex-col justify-center items-start w-10 h-10 space-y-1.5 z-30"
-                >
-                    <span className={`block w-6 h-0.5 bg-current transition-transform duration-300 ${isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
-                    <span className={`block w-6 h-0.5 bg-current transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-0' : ''}`}></span>
-                    <span className={`block w-6 h-0.5 bg-current transition-transform duration-300 ${isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
-                </button>
+            <div className="md:hidden w-full sticky top-0 z-40 bg-black/80 backdrop-blur-md">
+                <div className="flex items-center justify-between w-full h-14 px-4">
+                    <button
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        className="text-white flex flex-col justify-center items-start w-6 h-6 space-y-1.5 z-30"
+                    >
+                        <span className={`block w-6 h-0.5 bg-current transition-transform duration-300 ${isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
+                        <span className={`block w-6 h-0.5 bg-current transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-0' : ''}`}></span>
+                        <span className={`block w-6 h-0.5 bg-current transition-transform duration-300 ${isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
+                    </button>
 
-                {/* LOGO BRAND MOBILE */}
-                <div
-                    onClick={() => { setActiveCategory('All'); setIsMobileMenuOpen(false); }}
-                    className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-20 flex items-center justify-center cursor-pointer z-20"
-                >
-                    <img
-                        src="/logo%20copy.svg"
-                        alt="Yunlub Gallery Logo"
-                        className="w-full h-full object-contain"
-                    />
+                    <div
+                        onClick={() => { setActiveCategory('All'); setIsMobileMenuOpen(false); }}
+                        className="w-24 h-full flex items-center justify-center cursor-pointer"
+                    >
+                        <img
+                            src="/logo%20copy.svg"
+                            alt="Yunlub Gallery Logo"
+                            className="w-full h-10 object-contain"
+                        />
+                    </div>
+
+                    <button 
+                        onClick={() => setIsOpenCart(true)}
+                        className="text-white relative"
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="9" cy="21" r="1" />
+                            <circle cx="20" cy="21" r="1" />
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                        </svg>
+                        {isMounted && totalCartCount > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-white text-black text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+                                {totalCartCount}
+                            </span>
+                        )}
+                    </button>
                 </div>
 
-                <div className="h-20 w-full"></div>
-
-                {/* Danh mục Dropdown */}
                 <AnimatePresence>
                     {isMobileMenuOpen && (
                         <motion.nav
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            className="absolute top-20 left-0 w-full overflow-hidden flex flex-col items-center space-y-4 pt-6 pb-6 text-[13px] font-black italic tracking-widest bg-black z-20 border-b border-zinc-900/50"
+                            className="w-full overflow-hidden flex flex-col items-center space-y-4 pt-6 pb-6 text-[13px] font-black italic tracking-widest bg-black border-b border-zinc-900/50"
                         >
                             {CATEGORIES.map((cat) => (
                                 <button
