@@ -25,6 +25,11 @@ export default function CheckoutPage() {
         type: 'success'
     })
 
+    const [voucherCode, setVoucherCode] = useState('')
+    const [voucherLoading, setVoucherLoading] = useState(false)
+    const [voucherMessage, setVoucherMessage] = useState<{ type: 'success' | 'error' | null; text: string }>({ type: null, text: '' })
+    const [appliedVoucher, setAppliedVoucher] = useState<{ code: string; discount: number; voucherId: string } | null>(null)
+
     useEffect(() => {
         const fetchBankAccounts = async () => {
             const { data, error } = await supabase
@@ -53,7 +58,55 @@ export default function CheckoutPage() {
 
     if (!isMounted) return null
 
+    const handleApplyVoucher = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!voucherCode.trim() || voucherLoading) return
+
+        setVoucherLoading(true)
+        setVoucherMessage({ type: null, text: '' })
+
+        try {
+            const inputCode = voucherCode.trim().toUpperCase()
+
+            const { data: voucher, error } = await supabase
+                .from('vouchers')
+                .select('*')
+                .eq('code', inputCode)
+                .maybeSingle()
+
+            if (error) throw error
+
+            if (!voucher) {
+                setVoucherMessage({ type: 'error', text: '[ VOUCHER KHÔNG TỒN TẠI ]' })
+                return
+            }
+
+            if (voucher.is_used) {
+                setVoucherMessage({ type: 'error', text: '[ VOUCHER ĐÃ ĐƯỢC SỬ DỤNG TRƯỚC ĐÓ ]' })
+                return
+            }
+
+            setAppliedVoucher({
+                code: inputCode,
+                discount: voucher.discount_percent,
+                voucherId: voucher.id,
+            })
+            setVoucherMessage({
+                type: 'success',
+                text: `[ ĐÃ ÁP DỤNG MÃ GIẢM GIÁ ${voucher.discount_percent}% ]`
+            })
+
+        } catch (err) {
+            console.error('Lỗi hệ thống voucher:', err)
+            setVoucherMessage({ type: 'error', text: '[ LỖI KẾT NỐI — VUI LÒNG THỬ LẠI ]' })
+        } finally {
+            setVoucherLoading(false)
+        }
+    }
+
     const currentTotal = cartItems.reduce((total, item) => total + (item.priceNumber * item.quantity), 0)
+    const discountAmount = appliedVoucher ? (currentTotal * appliedVoucher.discount / 100) : 0
+    const finalTotal = currentTotal - discountAmount
 
     const handleSubmitOrder = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -69,11 +122,12 @@ export default function CheckoutPage() {
                 phone: (info.phone || '').trim(),
                 address: (info.address || '').trim().toUpperCase(),
                 note: (info.note || '').trim().toUpperCase(),
-                total_amount: currentTotal,
+                total_amount: finalTotal, // Đã dùng total sau khi giảm
                 payment_method: paymentMethod, 
                 status: paymentMethod === 'COD' ? 'PENDING_COD' : 'PENDING_TRANSFER',
                 items: cartItems,
-                created_at: new Date().toISOString()
+                created_at: new Date().toISOString(),
+                voucher_code: appliedVoucher?.code || null // Lưu voucher nếu có
             }
 
             const { data, error } = await supabase
@@ -86,7 +140,14 @@ export default function CheckoutPage() {
                 throw error
             }
 
-            setOrderFinalTotal(currentTotal);
+            if (appliedVoucher) {
+                await supabase
+                    .from('vouchers')
+                    .update({ is_used: true })
+                    .eq('id', appliedVoucher.voucherId)
+            }
+
+            setOrderFinalTotal(finalTotal);
             setShowSuccess(true)
             clearCart()
             
@@ -312,14 +373,61 @@ export default function CheckoutPage() {
                                         </AnimatePresence>
                                     </div>
 
+                                    {/* 🎫 Ô NHẬP VOUCHER */}
+                                    <div className="space-y-3 pt-2 border-t border-zinc-900">
+                                        <label className="text-[9px] font-mono tracking-widest text-zinc-500 uppercase block">// PROMO CODE:</label>
+                                        <form onSubmit={handleApplyVoucher} className="flex border border-zinc-800 h-11 bg-zinc-950">
+                                            <input
+                                                type="text"
+                                                placeholder="ENTER VOUCHER"
+                                                value={voucherCode}
+                                                disabled={!!appliedVoucher}
+                                                onChange={(e) => setVoucherCode(e.target.value)}
+                                                className="flex-1 bg-transparent px-3 text-xs font-mono focus:outline-none tracking-widest text-white placeholder-zinc-700"
+                                            />
+                                            <button
+                                                type="submit"
+                                                disabled={voucherLoading || !!appliedVoucher}
+                                                className="bg-white text-black text-[10px] font-mono font-bold px-5 uppercase hover:bg-zinc-200 transition-colors focus:outline-none disabled:opacity-50"
+                                            >
+                                                {voucherLoading ? '...' : 'APPLY'}
+                                            </button>
+                                        </form>
+
+                                        <AnimatePresence mode="wait">
+                                            {voucherMessage.text && (
+                                                <motion.p
+                                                    key={voucherMessage.text}
+                                                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                                                    animate={{ opacity: 1, height: 'auto', marginTop: 6 }}
+                                                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                                                    transition={{ duration: 0.3 }}
+                                                    className={`text-[9px] font-mono tracking-wider uppercase font-bold overflow-hidden ${voucherMessage.type === 'success' ? 'text-green-500' : 'text-red-500'}`}
+                                                >
+                                                    {voucherMessage.text}
+                                                </motion.p>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+
                                     <div className="border-t border-zinc-900 pt-4 space-y-2">
+                                        <div className="flex justify-between text-zinc-500 text-[10px]">
+                                            <span>SUBTOTAL:</span>
+                                            <span className="text-white">VND {currentTotal.toLocaleString()}</span>
+                                        </div>
+                                        {appliedVoucher && (
+                                            <div className="flex justify-between text-zinc-500 text-[10px]">
+                                                <span>DISCOUNT ({appliedVoucher.code} - {appliedVoucher.discount}%):</span>
+                                                <span className="text-emerald-400 font-bold">- VND {discountAmount.toLocaleString()}</span>
+                                            </div>
+                                        )}
                                         <div className="flex justify-between text-zinc-500 text-[10px]">
                                             <span>SHIPPING:</span>
                                             <span className="text-emerald-500 font-bold tracking-widest">FREE SHIPPING</span>
                                         </div>
                                         <div className="flex justify-between items-center text-xs border-t border-zinc-900 pt-3">
                                             <span className="text-zinc-400">TOTAL AMOUNT:</span>
-                                            <span className="text-white font-black text-sm">VND {currentTotal.toLocaleString()}</span>
+                                            <span className="text-white font-black text-sm">VND {finalTotal.toLocaleString()}</span>
                                         </div>
                                     </div>
 

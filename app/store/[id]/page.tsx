@@ -34,12 +34,6 @@ export default function ProductDetailPage() {
     const [quantity, setQuantity] = useState(1)
     const [isLoading, setIsLoading] = useState(true)
 
-    // --- State xử lý Voucher ---
-    const [voucherCode, setVoucherCode] = useState('')
-    const [voucherLoading, setVoucherLoading] = useState(false)
-    const [voucherMessage, setVoucherMessage] = useState<{ type: 'success' | 'error' | null; text: string }>({ type: null, text: '' })
-    const [appliedVoucher, setAppliedVoucher] = useState<{ code: string; discount: number; voucherId: string } | null>(null)
-
     // --- State ẩn/hiện Size Chart ---
     const [isOpenSizeChart, setIsOpenSizeChart] = useState(false)
 
@@ -108,77 +102,15 @@ export default function ProductDetailPage() {
         fetchProductDetail()
     }, [rawId])
 
-    const handleApplyVoucher = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!voucherCode.trim() || voucherLoading || !product) return
-
-        setVoucherLoading(true)
-        setVoucherMessage({ type: null, text: '' })
-
-        try {
-            const inputCode = voucherCode.trim().toUpperCase()
-
-            const { data: voucher, error } = await supabase
-                .from('vouchers')
-                .select('*')
-                .eq('code', inputCode)
-                .maybeSingle()
-
-            if (error) throw error
-
-            if (!voucher) {
-                setVoucherMessage({ type: 'error', text: '[ VOUCHER KHÔNG TỒN TẠI ]' })
-                return
-            }
-
-            if (voucher.is_used) {
-                setVoucherMessage({ type: 'error', text: '[ VOUCHER ĐÃ ĐƯỢC SỬ DỤNG TRƯỚC ĐÓ ]' })
-                return
-            }
-
-            setAppliedVoucher({
-                code: inputCode,
-                discount: voucher.discount_percent,
-                voucherId: voucher.id,
-            })
-            setVoucherMessage({
-                type: 'success',
-                text: `[ ĐÃ ÁP DỤNG MÃ GIẢM GIÁ ${voucher.discount_percent}% — NHẤN ADD TO CART ĐỂ XÁC NHẬN ]`
-            })
-
-        } catch (err) {
-            console.error('Lỗi hệ thống voucher:', err)
-            setVoucherMessage({ type: 'error', text: '[ LỖI KẾT NỐI — VUI LÒNG THỬ LẠI ]' })
-        } finally {
-            setVoucherLoading(false)
-        }
-    }
-
     const safePrice = product?.price || 0
-    const displayedPrice = appliedVoucher
-        ? safePrice - (safePrice * appliedVoucher.discount / 100)
-        : safePrice
+    const displayedPrice = safePrice
 
     const handleLocalAddToCart = async () => {
         if (!product) return
         
         // Chặn người dùng cố tình thêm khi hết hàng
         if (isSelectedSizeOutOfStock || quantity === 0) {
-            setVoucherMessage({ type: 'error', text: '[ SẢN PHẨM HIỆN ĐANG HẾT HÀNG CHO KÍCH CỠ NÀY ]' })
             return
-        }
-
-        if (appliedVoucher) {
-            const { error: updateError } = await supabase
-                .from('vouchers')
-                .update({ is_used: true })
-                .eq('id', appliedVoucher.voucherId)
-
-            if (updateError) {
-                console.error("❌ Lỗi khi cập nhật voucher:", updateError.message)
-                setVoucherMessage({ type: 'error', text: '[ LỖI XÁC NHẬN VOUCHER — VUI LÒNG THỬ LẠI ]' })
-                return
-            }
         }
 
         addToCart({
@@ -190,16 +122,6 @@ export default function ProductDetailPage() {
             size: selectedSize,
             quantity: quantity,
         })
-
-        setVoucherMessage({
-            type: 'success',
-            text: appliedVoucher
-                ? `[ 🎉 THÀNH CÔNG — ĐÃ THÊM VÀO GIỎ HÀNG VỚI MỨC GIẢM ${appliedVoucher.discount}% ]`
-                : '[ 🎉 THÀNH CÔNG — ĐÃ THÊM SẢN PHẨM VÀO GIỎ HÀNG ]'
-        })
-
-        setAppliedVoucher(null)
-        setVoucherCode('')
     }
 
     if (isLoading) {
@@ -281,14 +203,7 @@ export default function ProductDetailPage() {
                             {product.description || 'UNTITLED PRODUCT'}
                         </h1>
                         <div className="flex items-center space-x-3 font-mono">
-                            {appliedVoucher ? (
-                                <>
-                                    <p className="text-lg text-white font-bold">VND {displayedPrice.toLocaleString()}</p>
-                                    <p className="text-xs text-zinc-600 line-through">VND {safePrice.toLocaleString()}</p>
-                                </>
-                             ) : (
-                                <p className="text-lg text-white">VND {safePrice.toLocaleString()}</p>
-                            )}
+                            <p className="text-lg text-white">VND {safePrice.toLocaleString()}</p>
                         </div>
                     </div>
 
@@ -398,43 +313,6 @@ export default function ProductDetailPage() {
                         </div>
                     </div>
 
-                    {/* 🎫 Ô NHẬP VOUCHER */}
-                    <div className="space-y-3 max-w-sm pt-2 border-t border-zinc-900">
-                        <label className="text-[9px] font-mono tracking-widest text-zinc-500 uppercase block">// PROMO CODE:</label>
-                        <form onSubmit={handleApplyVoucher} className="flex border border-zinc-800 h-11 bg-zinc-950">
-                            <input
-                                type="text"
-                                placeholder="ENTER VOUCHER"
-                                value={voucherCode}
-                                disabled={!!appliedVoucher}
-                                onChange={(e) => setVoucherCode(e.target.value)}
-                                className="flex-1 bg-transparent px-3 text-xs font-mono focus:outline-none tracking-widest text-white placeholder-zinc-700"
-                            />
-                            <button
-                                type="submit"
-                                disabled={voucherLoading || !!appliedVoucher}
-                                className="bg-white text-black text-[10px] font-mono font-bold px-5 uppercase hover:bg-zinc-200 transition-colors focus:outline-none disabled:opacity-50"
-                            >
-                                {voucherLoading ? '...' : 'APPLY'}
-                            </button>
-                        </form>
-
-                        <AnimatePresence mode="wait">
-                            {voucherMessage.text && (
-                                <motion.p
-                                    key={voucherMessage.text}
-                                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                                    animate={{ opacity: 1, height: 'auto', marginTop: 6 }}
-                                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                                    transition={{ duration: 0.3 }}
-                                    className={`text-[9px] font-mono tracking-wider uppercase font-bold overflow-hidden ${voucherMessage.type === 'success' ? 'text-green-500' : 'text-red-500'}`}
-                                >
-                                    {voucherMessage.text}
-                                </motion.p>
-                            )}
-                        </AnimatePresence>
-                    </div>
-
                     {/* 🛒 6. NÚT ĐẶT HÀNG (THAY ĐỔI THEO TRẠNG THÁI HẾT HÀNG) */}
                     <div>
                         <motion.button
@@ -450,8 +328,6 @@ export default function ProductDetailPage() {
                         >
                             {isSelectedSizeOutOfStock 
                                 ? 'OUT OF STOCK' 
-                                : appliedVoucher 
-                                ? `ADD TO CART (VND ${(displayedPrice * quantity).toLocaleString()})` 
                                 : 'ADD TO CART'
                             }
                         </motion.button>
