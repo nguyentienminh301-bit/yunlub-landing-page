@@ -26,7 +26,7 @@ export default function StoreLayout({
           </main>
         </div>
 
-        <footer className="mt-24 pt-8 border-t border-zinc-900 text-center text-[10px] text-zinc-600 tracking-[0.5em] uppercase font-mono global-footer">
+        <footer className="mt-12 md:mt-16 pt-8 border-t border-zinc-900 text-center text-[10px] text-zinc-600 tracking-[0.5em] uppercase font-mono global-footer">
           © 2026 YUNLUB GALLERY • ALL RIGHTS RESERVED • DROP NO.1
         </footer>
 

@@ -207,7 +207,7 @@ export default function ProductDetailPage() {
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="w-full min-h-screen pt-32 pb-12 flex flex-col items-center justify-center font-mono text-[10px] tracking-widest text-zinc-600 animate-pulse"
+                className="w-full min-h-screen pt-6 md:pt-10 pb-12 flex flex-col items-center justify-center font-mono text-[10px] tracking-widest text-zinc-600 animate-pulse"
             >
                 [ LOADING PRODUCT DETAILS... ]
             </motion.div>
@@ -219,7 +219,7 @@ export default function ProductDetailPage() {
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="w-full min-h-screen pt-32 pb-12 flex flex-col items-center justify-center space-y-4"
+                className="w-full min-h-screen pt-6 md:pt-10 pb-12 flex flex-col items-center justify-center space-y-4"
             >
                 <p className="font-mono text-[10px] tracking-widest text-zinc-500">[ PRODUCT NOT FOUND ]</p>
                 <Link href="/store" className="text-xs font-black italic underline tracking-widest text-white">BACK TO STORE</Link>
@@ -232,7 +232,7 @@ export default function ProductDetailPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4 }}
-            className="w-full min-h-screen pt-32 pb-24 px-4 md:px-8 selection:bg-white selection:text-black overflow-x-hidden"
+            className="w-full min-h-screen pt-6 md:pt-10 pb-12 md:pb-16 px-4 md:px-8 selection:bg-white selection:text-black overflow-x-hidden"
         >
             {/* 🧭 NÚT QUAY LẠI */}
             <motion.div
