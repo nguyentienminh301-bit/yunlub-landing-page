@@ -77,7 +77,7 @@ export default function StorePage() {
                 1. MOBILE TOP BAR
             ========================================= */}
             <div className="md:hidden w-full sticky top-0 z-40 bg-black/80 backdrop-blur-md">
-                <div className="flex items-center justify-between w-full h-14 px-4">
+                <div className="flex items-center justify-between w-full h-20 px-4">
                     <button
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                         className="text-white flex flex-col justify-center items-start w-6 h-6 space-y-1.5 z-30"
@@ -89,12 +89,12 @@ export default function StorePage() {
 
                     <div
                         onClick={() => { setActiveCategory('All'); setIsMobileMenuOpen(false); }}
-                        className="w-24 h-full flex items-center justify-center cursor-pointer"
+                        className="h-full flex items-center justify-center cursor-pointer"
                     >
                         <img
                             src="/logo%20copy.svg"
                             alt="Yunlub Gallery Logo"
-                            className="w-full h-10 object-contain"
+                            className="h-12 w-auto object-contain"
                         />
                     </div>
 
@@ -139,6 +139,21 @@ export default function StorePage() {
                                     {cat}
                                 </button>
                             ))}
+                            
+                            {/* Cụm link phụ (đã dời từ footer lên menu) */}
+                            <div className="pt-6 flex flex-col items-center space-y-3">
+                                <a href="https://www.instagram.com/yunlubgallery/" target="_blank" rel="noreferrer" className="text-zinc-500 hover:text-white transition-colors block">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                                        <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+                                    </svg>
+                                </a>
+                                <a href="#" onClick={() => setIsMobileMenuOpen(false)} className="text-[10px] font-mono tracking-[0.2em] text-zinc-500 hover:text-white transition-colors uppercase block">ARCHIVE</a>
+                                <a href="#" onClick={() => setIsMobileMenuOpen(false)} className="text-[10px] font-mono tracking-[0.2em] text-zinc-500 hover:text-white transition-colors uppercase block">NEWSLETTER</a>
+                                <a href="#" onClick={() => setIsMobileMenuOpen(false)} className="text-[10px] font-mono tracking-[0.2em] text-zinc-500 hover:text-white transition-colors uppercase block">SHIPPING POLICY</a>
+                                <a href="#" onClick={() => setIsMobileMenuOpen(false)} className="text-[10px] font-mono tracking-[0.2em] text-zinc-500 hover:text-white transition-colors uppercase block">TERMS OF SERVICE</a>
+                            </div>
                         </motion.nav>
                     )}
                 </AnimatePresence>
@@ -267,32 +282,6 @@ export default function StorePage() {
                 </section>
             </div>
 
-            {/* =========================================
-                3. MOBILE FOOTER LINKS (Đã tinh chỉnh khoảng cách gọn hơn)
-            ========================================= */}
-            {/* GIẢM mt-8 -> mt-4 để kéo sát lên phía trên một chút nếu danh sách dài */}
-            <div className="md:hidden w-full shrink-0 mt-4">
-                {/* GIẢM mb-3 -> mb-2 để kéo chữ sát thanh ngang hơn */}
-                <div className="w-full border-t border-zinc-900/60 mb-2"></div>
-
-                {/* GIẢM space-y-2 -> space-y-1.5 để các dòng chữ khít nhau hơn; pb-6 -> pb-4 để đáy đỡ trống sâu */}
-                <div className="w-full flex flex-col items-start space-y-1.5 pb-4 px-2 text-left">
-                    {/* Icon Instagram */}
-                    <a href="https://www.instagram.com/yunlubgallery/" target="_blank" rel="noreferrer" className="text-zinc-500 hover:text-white transition-colors w-fit block mb-0.5">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                            <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-                        </svg>
-                    </a>
-                    
-                    {/* Các link menu */}
-                    <a href="#" className="text-[10px] font-mono tracking-[0.2em] text-zinc-500 hover:text-white transition-colors uppercase block">ARCHIVE</a>
-                    <a href="#" className="text-[10px] font-mono tracking-[0.2em] text-zinc-500 hover:text-white transition-colors uppercase block">NEWSLETTER</a>
-                    <a href="#" className="text-[10px] font-mono tracking-[0.2em] text-zinc-500 hover:text-white transition-colors uppercase block">SHIPPING POLICY</a>
-                    <a href="#" className="text-[10px] font-mono tracking-[0.2em] text-zinc-500 hover:text-white transition-colors uppercase block">TERMS OF SERVICE</a>
-                </div>
-            </div>
 
         </motion.div>
     )
